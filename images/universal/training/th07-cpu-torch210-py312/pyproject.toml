@@ -1,14 +1,13 @@
-# TH06 CPU Universal Image Python Dependencies
+# TH07 CPU Universal Image Python Dependencies
 #
 # To regenerate requirements.txt:
 #   uv pip compile --python-platform=linux --python-version=3.12 \
 #     --index-strategy=unsafe-best-match \
-#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/ \
-#     --extra-index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/ \
+#     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/ \
 #     -o requirements.txt pyproject.toml
 
 [project]
-name = "th06-cpu-universal-image"
+name = "th07-cpu-universal-image"
 version = "0.1.0"
 requires-python = "==3.12.*"
 
@@ -20,10 +19,10 @@ dependencies = [
     # ===================================================================
     
     # PyTorch CPU version
-    "torch==2.9.1",
+    "torch==2.10.0",
     
     # Triton (CPU compatible for JIT compilation)
-    "triton==3.5.1",
+    "triton==3.6.0",
     
     # ML Training and Inference Libraries
     "peft==0.18.1",
@@ -32,9 +31,12 @@ dependencies = [
     "accelerate==1.12.0",
     "trl==0.24.0",
     
-    # Deep Learning Utilities (CPU-compatible)
+    # Deep Learning Utilities
     "einops>=0.8",
     "numba>=0.61.2",
+    "deepspeed>=0.18.4",
+    "kernels>=0.10.3",
+    "liger-kernel>=0.6.2",
     
     # Tokenization
     "sentencepiece>=0.1.99",
@@ -58,7 +60,8 @@ dependencies = [
     "mlflow==3.10.1+rhaiv.3",
     
     # Training Frameworks
-    "training_hub==0.6.0",
+    "training_hub==0.7.0",
+    "unsloth==2026.3.3",
     "instructlab-training==0.14.2",
     "rhai-innovation-mini-trainer==0.6.1",
     
@@ -83,5 +86,4 @@ environments = [
     "sys_platform == 'linux' and implementation_name == 'cpython'",
 ]
 index-strategy = "unsafe-best-match"
-index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA1/cpu-ubi9/simple/"
-extra-index-url = ["https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/"]
+index-url = "https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cpu-ubi9/simple/"

@@ -26,27 +26,32 @@ USER 0
 WORKDIR /tmp/deps
 
 # Copy requirements files
-COPY --chown=1001:0 pyproject.toml requirements.txt requirements-ga.txt ./
+COPY --chown=1001:0 pyproject.toml requirements.txt ./
 
 # Switch to user 1001 for pip installations
 USER 1001
 WORKDIR /opt/app-root/src
 
-# Install dependencies from AIPCC indexes
-# torch and triton from EA2 index (GA will introduce torch 2.10.0, we need 2.9.1)
-# All other packages from GA index
+# Install dependencies from AIPCC GA index
 RUN uv pip install --no-cache-dir \
     --index-strategy=unsafe-best-match \
-    --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4-EA2/cuda13.0-ubi9/simple/ \
-    -r /tmp/deps/requirements.txt \
- && uv pip install --no-cache-dir \
     --index-url=https://console.redhat.com/api/pypi/public-rhai/rhoai/3.4/cuda13.0-ubi9/simple/ \
-    -r /tmp/deps/requirements-ga.txt
+    -r /tmp/deps/requirements.txt
 
-# Fix permissions for OpenShift
+# Trim site-packages: remove caches, bytecode, tests, and strip .so debug symbols
 ARG PYTHON_VERSION
 USER 0
-RUN chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
+RUN find /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
+        \( -type d -name '__pycache__' -o \
+           -type d -name 'tests' -o \
+           -type d -name 'test' -o \
+           -type f -name '*.pyc' -o \
+           -type f -name '*.pyo' \) \
+        -exec rm -rf {} + 2>/dev/null; \
+    find /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
+        -type f -name '*.so' -exec strip --strip-debug {} + 2>/dev/null; \
+    rm -f /opt/app-root/bin/uv \
+ && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages \
  && fix-permissions /opt/app-root -P
 
 # Clean up
@@ -57,10 +62,10 @@ RUN rm -rf /tmp/deps
 ################################################################################
 FROM ${BASE_IMAGE} AS final
 
-LABEL name="universal:th06-cuda130-py312-torch291" \
-      summary="TH06 CUDA 13.0 Python 3.12 image with PyTorch 2.9.1" \
-      description="Universal image combining minimal Jupyter workbench and runtime ML stack (CUDA 13.0, PyTorch 2.9.1, FlashAttention 2.8.3) on UBI9" \
-      io.k8s.display-name="TH06 CUDA 13.0 Python 3.12 (Workbench + Runtime)" \
+LABEL name="universal:th07-cuda130-py312-torch210" \
+      summary="TH07 CUDA 13.0 Python 3.12 image with PyTorch 2.10.0" \
+      description="Universal image combining minimal Jupyter workbench and runtime ML stack (CUDA 13.0, PyTorch 2.10.0, FlashAttention 2.8.3) on UBI9" \
+      io.k8s.display-name="TH07 CUDA 13.0 Python 3.12 (Workbench + Runtime)" \
       io.k8s.description="Universal image: Jupyter workbench by default; runtime when command provided."
 
 USER 0
@@ -122,18 +127,11 @@ ARG PYTHON_VERSION
 COPY --from=builder /opt/app-root/lib/python${PYTHON_VERSION}/site-packages /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 COPY --from=builder /opt/app-root/bin /opt/app-root/bin
 
-# Remove uv from final image (inherited from base image, not needed at runtime)
-RUN rm -f /opt/app-root/bin/uv
-
 # Copy license file
 COPY LICENSE.md /licenses/cuda-license.md
 
 # Copy entrypoint
 COPY --chmod=0755 entrypoint-universal.sh /usr/local/bin/entrypoint-universal.sh
-
-# Fix permissions for OpenShift (final stage)
-RUN fix-permissions /opt/app-root -P \
- && chmod -R g+w /opt/app-root/lib/python${PYTHON_VERSION}/site-packages
 
 USER 1001
 WORKDIR /opt/app-root/src
